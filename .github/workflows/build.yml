@@ -10,12 +10,9 @@ jobs:
 
       - name: Setup Theos
         run: |
-          # Instala o ldid para evitar o erro de assinatura
-          brew install ldid
+          # O ldid já vem no Mac do GitHub, então apenas garantimos o Theos
           git clone --recursive https://github.com/theos/theos.git ~/theos
           echo "THEOS=/Users/runner/theos" >> $GITHUB_ENV
-          # Adiciona o Theos ao PATH para o sistema achar as ferramentas
-          echo "/Users/runner/theos/bin" >> $GITHUB_PATH
 
       - name: Setup SDK
         run: |
@@ -35,17 +32,16 @@ jobs:
         run: |
           export THEOS=/Users/runner/theos
           export PATH=$THEOS/bin:$PATH
-          # Agora com ldid instalado, a compilação será 100% limpa
+          # Compilação limpa
           make FINALPACKAGE=1
           
-          # Cria a pasta de entrega e copia a dylib
+          # COMANDO CAÇADOR DEFINITIVO:
           mkdir -p entrega
-          find .theos/obj -name "*.dylib" -exec cp {} entrega/ \;
-          # Caso não esteja na pasta oculta, procura na pasta normal
-          find obj -name "*.dylib" -exec cp {} entrega/ \; || true
+          # Procura em todas as pastas por qualquer arquivo .dylib e copia para 'entrega'
+          find . -name "*.dylib" -exec cp {} entrega/ \;
 
       - name: Upload Dylib
         uses: actions/upload-artifact@v4
         with:
           name: MartinsMod-Dylib
-          path: entrega/*.dylib
+          path: entrega/
