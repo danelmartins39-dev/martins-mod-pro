@@ -23,14 +23,17 @@ jobs:
 
       - name: Fix Filenames
         run: |
+          # Procura pelo arquivo de código e garante que o nome seja Tweak.xm
           if [ -f "Tweak_Pro.xm" ]; then mv Tweak_Pro.xm Tweak.xm; fi
           if [ -f "Martins_Mod_Final.xm" ]; then mv Martins_Mod_Final.xm Tweak.xm; fi
+          if [ -f "Tweak_Martins.xm" ]; then mv Tweak_Martins.xm Tweak.xm; fi
 
       - name: Build Dylib
         run: |
           export THEOS=/Users/runner/theos
           export PATH=$THEOS/bin:$PATH
-          make FINALPACKAGE=1
+          # Compila para arm64 e arm64e sem exigir o ldid
+          make FINALPACKAGE=1 codesign=0
         
       - name: Upload Dylib
         uses: actions/upload-artifact@v4
