@@ -11,7 +11,6 @@ jobs:
       - name: Setup Theos
         run: |
           git clone --recursive https://github.com/theos/theos.git ~/theos
-          echo "THEOS=/Users/runner/theos" >> $GITHUB_ENV
 
       - name: Setup SDK
         run: |
@@ -23,17 +22,16 @@ jobs:
 
       - name: Fix Filenames
         run: |
-          # Procura pelo arquivo de código e garante que o nome seja Tweak.xm
           if [ -f "Tweak_Pro.xm" ]; then mv Tweak_Pro.xm Tweak.xm; fi
           if [ -f "Martins_Mod_Final.xm" ]; then mv Martins_Mod_Final.xm Tweak.xm; fi
           if [ -f "Tweak_Martins.xm" ]; then mv Tweak_Martins.xm Tweak.xm; fi
 
       - name: Build Dylib
         run: |
-          export THEOS=/Users/runner/theos
+          export THEOS=~/theos
           export PATH=$THEOS/bin:$PATH
-          # Compila para arm64 e arm64e sem exigir o ldid
-          make FINALPACKAGE=1 codesign=0
+          # Força o uso do SDK 16.5 que baixamos
+          make FINALPACKAGE=1 codesign=0 SDKVERSION=16.5 SYSROOT=~/theos/sdks/iPhoneOS16.5.sdk
         
       - name: Upload Dylib
         uses: actions/upload-artifact@v4
