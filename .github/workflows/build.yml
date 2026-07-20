@@ -1,0 +1,35 @@
+name: Build Martins Mod
+on: [push, pull_request, workflow_dispatch]
+
+jobs:
+  build:
+    runs-on: macos-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Theos
+        run: |
+          bash -c "$(curl -fsSL https://raw.githubusercontent.com/theos/theos/master/bin/install-theos )"
+          echo "THEOS=~/theos" >> $GITHUB_ENV
+          echo "~/theos/bin" >> $GITHUB_PATH
+
+      - name: Setup SDK
+        run: |
+          mkdir -p ~/theos/sdks
+          curl -LO https://github.com/theos/sdks/archive/master.zip
+          unzip master.zip
+          mv sdks-master/*.sdk ~/theos/sdks/
+          rm -rf master.zip sdks-master
+
+      - name: Build Dylib
+        run: |
+          make FINALPACKAGE=1
+        env:
+          THEOS: /Users/runner/theos
+
+      - name: Upload Dylib
+        uses: actions/upload-artifact@v4
+        with:
+          name: MartinsMod-Dylib
+          path: .theos/obj/*.dylib
