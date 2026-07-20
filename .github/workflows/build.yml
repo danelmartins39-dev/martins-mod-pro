@@ -31,13 +31,13 @@ jobs:
           export THEOS=~/theos
           export PATH=$THEOS/bin:$PATH
           make FINALPACKAGE=1 codesign=0 || true
+          
+          # COMANDO DE CAÇA: Cria uma pasta 'entrega' e move qualquer dylib pra lá
+          mkdir -p entrega
+          find . -name "*.dylib" -exec cp {} entrega/ \;
 
       - name: Upload Dylib
         uses: actions/upload-artifact@v4
         with:
           name: MartinsMod-Dylib
-          # Mudei o caminho para garantir que ele ache a dylib em qualquer subpasta
-          path: |
-            .theos/obj/*.dylib
-            obj/*.dylib
-            *.dylib
+          path: entrega/*.dylib
