@@ -10,10 +10,8 @@ jobs:
 
       - name: Setup Theos
         run: |
-          # Instalação forçada e silenciosa do Theos
           git clone --recursive https://github.com/theos/theos.git ~/theos
-          echo "THEOS=~/theos" >> $GITHUB_ENV
-          echo "~/theos/bin" >> $GITHUB_PATH
+          echo "THEOS=/Users/runner/theos" >> $GITHUB_ENV
 
       - name: Setup SDK
         run: |
@@ -25,13 +23,12 @@ jobs:
 
       - name: Fix Filenames
         run: |
-          # Garante que o arquivo tenha o nome que o Makefile espera
           if [ -f "Tweak_Pro.xm" ]; then mv Tweak_Pro.xm Tweak.xm; fi
           if [ -f "Martins_Mod_Final.xm" ]; then mv Martins_Mod_Final.xm Tweak.xm; fi
 
       - name: Build Dylib
         run: |
-          export THEOS=~/theos
+          export THEOS=/Users/runner/theos
           export PATH=$THEOS/bin:$PATH
           make FINALPACKAGE=1
         
