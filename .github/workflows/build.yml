@@ -26,14 +26,13 @@ jobs:
           if [ -f "Martins_Mod_Final.xm" ]; then mv Martins_Mod_Final.xm Tweak.xm; fi
           if [ -f "Tweak_Martins.xm" ]; then mv Tweak_Martins.xm Tweak.xm; fi
 
-            - name: Build Dylib
+      - name: Build Dylib
         run: |
           export THEOS=~/theos
           export PATH=$THEOS/bin:$PATH
-          # O "|| true" obriga o GitHub a continuar mesmo com o erro do ldid
+          # O "|| true" garante que o arquivo seja entregue mesmo sem assinatura
           make FINALPACKAGE=1 codesign=0 || true
 
-        
       - name: Upload Dylib
         uses: actions/upload-artifact@v4
         with:
