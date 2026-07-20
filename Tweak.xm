@@ -4,11 +4,11 @@
 #import <mach-o/dyld.h>
 #import <sys/mman.h>
 
-// --- CONFIGURAÇÕES DO SERVIDOR ---
-#define API_URL @"http://187.127.45.32:5000/api/v1/check"
+// --- CONFIGURAÇÕES DO SERVIDOR SEGURO ---
+#define API_URL @"https://187.127.45.32/api/v1/check"
 #define MENU_TITLE @"MARTINS MOD 👑"
 
-@interface MartinsMenuV2 : UIView <UITextFieldDelegate>
+@interface MartinsMenuV2 : UIView <UITextFieldDelegate, NSURLSessionDelegate>
 @property (nonatomic, strong ) UIView *header;
 @property (nonatomic, strong) UILabel *titleLabel;
 @property (nonatomic, strong) UIScrollView *contentView;
@@ -26,10 +26,9 @@
         self.layer.cornerRadius = 20;
         self.layer.masksToBounds = YES;
         self.layer.borderWidth = 2.0;
-        self.layer.borderColor = [UIColor colorWithRed:1.0 green:0.84 blue:0.0 alpha:1.0].CGColor; // Dourado Premium
+        self.layer.borderColor = [UIColor colorWithRed:1.0 green:0.84 blue:0.0 alpha:1.0].CGColor;
         self.backgroundColor = [[UIColor blackColor] colorWithAlphaComponent:0.92];
         
-        // Efeito de Brilho Neon
         self.layer.shadowColor = [UIColor redColor].CGColor;
         self.layer.shadowOffset = CGSizeMake(0, 0);
         self.layer.shadowOpacity = 0.8;
@@ -38,7 +37,6 @@
         [self setupHeader];
         [self setupLoginUI];
         
-        // Gesto para Arrastar o Menu
         UIPanGestureRecognizer *panGesture = [[UIPanGestureRecognizer alloc] initWithTarget:self action:@selector(handlePan:)];
         [self addGestureRecognizer:panGesture];
     }
@@ -56,10 +54,6 @@
     self.titleLabel.textAlignment = NSTextAlignmentCenter;
     self.titleLabel.font = [UIFont fontWithName:@"AvenirNext-Bold" size:18];
     [self.header addSubview:self.titleLabel];
-    
-    UIView *line = [[UIView alloc] initWithFrame:CGRectMake(0, 44, self.frame.size.width, 1)];
-    line.backgroundColor = [UIColor redColor];
-    [self.header addSubview:line];
 }
 
 - (void)setupLoginUI {
@@ -74,13 +68,11 @@
     self.keyField.layer.cornerRadius = 10;
     self.keyField.layer.borderWidth = 1;
     self.keyField.layer.borderColor = [[UIColor whiteColor] colorWithAlphaComponent:0.3].CGColor;
-    self.keyField.attributedPlaceholder = [[NSAttributedString alloc] initWithString:self.keyField.placeholder attributes:@{NSForegroundColorAttributeName: [[UIColor whiteColor] colorWithAlphaComponent:0.5]}];
     [self.loginContainer addSubview:self.keyField];
     
     self.actionBtn = [[UIButton alloc] initWithFrame:CGRectMake(20, 105, self.loginContainer.frame.size.width - 40, 45)];
     [self.actionBtn setTitle:@"ATIVAR ACESSO" forState:UIControlStateNormal];
     [self.actionBtn setTitleColor:[UIColor blackColor] forState:UIControlStateNormal];
-    self.actionBtn.titleLabel.font = [UIFont boldSystemFontOfSize:16];
     self.actionBtn.backgroundColor = [UIColor colorWithRed:1.0 green:0.84 blue:0.0 alpha:1.0];
     self.actionBtn.layer.cornerRadius = 10;
     [self.actionBtn addTarget:self action:@selector(validateKey) forControlEvents:UIControlEventTouchUpInside];
@@ -108,46 +100,40 @@
     NSData *jsonData = [NSJSONSerialization dataWithJSONObject:body options:0 error:nil];
     [request setHTTPBody:jsonData];
     
-    NSURLSessionConfiguration *sessionConfig = [NSURLSessionConfiguration defaultSessionConfiguration];
-    sessionConfig.allowsCellularAccess = YES;
+    NSURLSessionConfiguration *config = [NSURLSessionConfiguration defaultSessionConfiguration];
+    NSURLSession *session = [NSURLSession sessionWithConfiguration:config delegate:self delegateQueue:[NSOperationQueue mainQueue]];
     
-    // CORREÇÃO: Verificação de versão para evitar erro de compilação
-    if (@available(iOS 11.0, *)) {
-        sessionConfig.waitsForConnectivity = NO;
-    }
-    
-    sessionConfig.HTTPAdditionalHeaders = @{@"Content-Type": @"application/json"};
-
-    NSURLSession *session = [NSURLSession sessionWithConfiguration:sessionConfig];
     NSURLSessionDataTask *task = [session dataTaskWithRequest:request completionHandler:^(NSData *data, NSURLResponse *response, NSError *error) {
         dispatch_async(dispatch_get_main_queue(), ^{
             if (error) {
-                [self.actionBtn setTitle:[NSString stringWithFormat:@"ERRO: %@", error.localizedDescription] forState:UIControlStateNormal];
-                self.actionBtn.backgroundColor = [UIColor redColor];
+                [self.actionBtn setTitle:@"ERRO DE CONEXÃO" forState:UIControlStateNormal];
             } else if (data) {
                 NSDictionary *json = [NSJSONSerialization JSONObjectWithData:data options:0 error:nil];
                 if (json && [json[@"status"] isEqualToString:@"success"]) {
                     [self.loginContainer removeFromSuperview];
                     [self setupHackUI];
                 } else {
-                    NSString *errorMessage = json[@"message"] ? json[@"message"] : @"CHAVE INVÁLIDA!";
-                    [self.actionBtn setTitle:errorMessage forState:UIControlStateNormal];
-                    self.actionBtn.backgroundColor = [UIColor redColor];
+                    [self.actionBtn setTitle:@"CHAVE INVÁLIDA" forState:UIControlStateNormal];
                 }
-            } else {
-                [self.actionBtn setTitle:@"ERRO DE CONEXÃO" forState:UIControlStateNormal];
-                self.actionBtn.backgroundColor = [UIColor redColor];
             }
         });
     }];
     [task resume];
 }
 
+// IGNORAR ERRO DE CERTIFICADO (PARA CERTIFICADO AUTO-ASSINADO)
+- (void)URLSession:(NSURLSession *)session didReceiveChallenge:(NSURLAuthenticationChallenge *)challenge completionHandler:(void (^)(NSURLSessionAuthChallengeDisposition disposition, NSURLCredential * _Nullable credential))completionHandler {
+    if ([challenge.protectionSpace.authenticationMethod isEqualToString:NSURLAuthenticationMethodServerTrust]) {
+        completionHandler(NSURLSessionAuthChallengeUseCredential, [[NSURLCredential alloc] initWithTrust:challenge.protectionSpace.serverTrust]);
+    } else {
+        completionHandler(NSURLSessionAuthChallengePerformDefaultHandling, nil);
+    }
+}
+
 - (void)setupHackUI {
     [UIView animateWithDuration:0.3 animations:^{
         self.frame = CGRectMake(self.frame.origin.x, self.frame.origin.y, 280, 450);
     }];
-    
     self.hackContainer = [[UIView alloc] initWithFrame:CGRectMake(0, 45, self.frame.size.width, self.frame.size.height - 45)];
     [self addSubview:self.hackContainer];
     
@@ -156,32 +142,24 @@
     [self.hackContainer addSubview:self.contentView];
     
     [self addOption:@"ESP ANTENNA" y:20];
-    [self addOption:@"ESP LINE" y:80];
-    [self addOption:@"ESP BOX" y:140];
-    [self addOption:@"ESP DISTANCE" y:200];
-    [self addOption:@"AIMBOT 360" y:260];
-    [self addOption:@"AUTO HEADSHOT" y:320];
-    [self addOption:@"NO RECOIL" y:380];
-    [self addOption:@"SPEED HACK" y:440];
+    [self addOption:@"AIMBOT 360" y:80];
+    [self addOption:@"AUTO HEADSHOT" y:140];
+    [self addOption:@"SPEED HACK" y:200];
 }
 
 - (void)addOption:(NSString *)name y:(int)y {
     UIView *row = [[UIView alloc] initWithFrame:CGRectMake(15, y, self.frame.size.width - 30, 50)];
     row.backgroundColor = [[UIColor whiteColor] colorWithAlphaComponent:0.05];
     row.layer.cornerRadius = 12;
-    row.layer.borderWidth = 0.5;
-    row.layer.borderColor = [[UIColor redColor] colorWithAlphaComponent:0.3].CGColor;
     [self.contentView addSubview:row];
     
     UILabel *lbl = [[UILabel alloc] initWithFrame:CGRectMake(15, 0, 160, 50)];
     lbl.text = name;
     lbl.textColor = [UIColor whiteColor];
-    lbl.font = [UIFont fontWithName:@"AvenirNext-Medium" size:14];
     [row addSubview:lbl];
     
     UISwitch *sw = [[UISwitch alloc] initWithFrame:CGRectMake(row.frame.size.width - 60, 10, 0, 0)];
     sw.onTintColor = [UIColor redColor];
-    sw.thumbTintColor = [UIColor whiteColor];
     [row addSubview:sw];
 }
 
