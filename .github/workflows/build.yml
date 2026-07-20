@@ -12,8 +12,12 @@ jobs:
     steps:
     - uses: actions/checkout@v4
 
-    - name: Set up Theos
+    - name: Set up Theos and ldid
       run: |
+        # Instala ldid para assinar a dylib
+        brew install ldid
+        
+        # Configura o Theos
         export THEOS=~/theos
         git clone --recursive https://github.com/theos/theos.git $THEOS
         curl -L https://github.com/theos/sdks/archive/master.zip -o sdks.zip
@@ -24,10 +28,11 @@ jobs:
     - name: Build Tweak
       run: |
         export THEOS=~/theos
+        # FINALPACKAGE=1 garante que a dylib seja otimizada
         make package FINALPACKAGE=1
       
     - name: Upload Artifact
       uses: actions/upload-artifact@v4
       with:
         name: MartinsMod-Dylib
-        path: .theos/obj/main/MartinsMod.dylib
+        path: .theos/obj/MartinsMod.dylib
