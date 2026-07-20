@@ -8,7 +8,7 @@ include $(THEOS)/makefiles/common.mk
 TWEAK_NAME = MartinsMod
 
 MartinsMod_FILES = Tweak.xm
-MartinsMod_CFLAGS = -fobjc-arc
+MartinsMod_CFLAGS = -fobjc-arc -Wno-deprecated-declarations -Wno-unused-variable
 MartinsMod_FRAMEWORKS = UIKit Foundation CoreGraphics QuartzCore
 
 include $(THEOS)/makefiles/tweak.mk
