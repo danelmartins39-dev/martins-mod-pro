@@ -1,14 +1,14 @@
-
 #import <UIKit/UIKit.h>
 #import <Foundation/Foundation.h>
 #import <substrate.h>
 #import <mach-o/dyld.h>
+#import <sys/mman.h> // ADICIONADO PARA CORRIGIR O ERRO PROT_READ
 
 // --- CONFIGURAÇÕES DO SERVIDOR ---
 #define API_URL @"http://187.127.45.32:5000/api/v1/check"
 
 @interface MartinsMenu : UIView
-@property (nonatomic, strong) UIView *header;
+@property (nonatomic, strong ) UIView *header;
 @property (nonatomic, strong) UILabel *titleLabel;
 @property (nonatomic, strong) UIScrollView *scrollView;
 @property (nonatomic, strong) UITextField *keyField;
@@ -80,12 +80,11 @@
 }
 
 - (void)setupHackUI {
-    // Limpar tela de login
     for (UIView *v in self.subviews) [v removeFromSuperview];
     
     self.frame = CGRectMake(50, 100, 260, 350);
     self.backgroundColor = [[UIColor blackColor] colorWithAlphaComponent:0.85];
-    self.layer.borderColor = [UIColor colorWithRed:1.0 green:0.84 blue:0.0 alpha:1.0].CGColor; // Dourado
+    self.layer.borderColor = [UIColor colorWithRed:1.0 green:0.84 blue:0.0 alpha:1.0].CGColor;
     
     UILabel *title = [[UILabel alloc] initWithFrame:CGRectMake(0, 0, self.frame.size.width, 40)];
     title.text = @"MARTINS - MENU";
@@ -121,7 +120,7 @@
 
 @end
 
-// --- LÓGICA DE ESP (EXEMPLO DE PATCH) ---
+// --- LÓGICA DE PATCH ---
 void patch_memory(uint64_t address, const void *data, size_t size) {
     uint64_t page_start = address & ~0xFFF;
     mprotect((void *)page_start, 0x1000, PROT_READ | PROT_WRITE | PROT_EXEC);
@@ -131,7 +130,21 @@ void patch_memory(uint64_t address, const void *data, size_t size) {
 
 static void __attribute__((constructor)) init() {
     dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(5 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
-        MartinsMenu *menu = [[MartinsMenu alloc] initWithFrame:CGRectMake(50, 150, 240, 180)];
-        [[UIApplication sharedApplication].keyWindow addSubview:menu];
+        UIWindow *window = nil;
+        if (@available(iOS 13.0, *)) {
+            for (UIWindowScene *windowScene in [UIApplication sharedApplication].connectedScenes) {
+                if (windowScene.activationState == UISceneActivationStateForegroundActive) {
+                    window = windowScene.windows.firstObject;
+                    break;
+                }
+            }
+        } else {
+            window = [UIApplication sharedApplication].keyWindow;
+        }
+        
+        if (window) {
+            MartinsMenu *menu = [[MartinsMenu alloc] initWithFrame:CGRectMake(50, 150, 240, 180)];
+            [window addSubview:menu];
+        }
     });
 }
