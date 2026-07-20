@@ -1,49 +1,33 @@
-name: Build Martins Mod
-on: [push, pull_request, workflow_dispatch]
+name: iOS Tweak Build
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
 
 jobs:
   build:
     runs-on: macos-latest
+
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+    - uses: actions/checkout@v4
 
-      - name: Setup Theos
-        run: |
-          git clone --recursive https://github.com/theos/theos.git ~/theos
-          echo "THEOS=/Users/runner/theos" >> $GITHUB_ENV
+    - name: Set up Theos
+      run: |
+        export THEOS=~/theos
+        git clone --recursive https://github.com/theos/theos.git $THEOS
+        curl -L https://github.com/theos/sdks/archive/master.zip -o sdks.zip
+        unzip -q sdks.zip
+        mv sdks-master/* $THEOS/sdks/
+        rm -rf sdks-master sdks.zip
 
-      - name: Setup SDK
-        run: |
-          mkdir -p ~/theos/sdks
-          curl -LO https://github.com/theos/sdks/archive/master.zip
-          unzip master.zip
-          mv sdks-master/*.sdk ~/theos/sdks/
-          rm -rf master.zip sdks-master
-
-      - name: Fix Filenames
-        run: |
-          if [ -f "Tweak_Pro.xm" ]; then mv Tweak_Pro.xm Tweak.xm; fi
-          if [ -f "Martins_Mod_Final.xm" ]; then mv Martins_Mod_Final.xm Tweak.xm; fi
-          if [ -f "Tweak_Martins.xm" ]; then mv Tweak_Martins.xm Tweak.xm; fi
-
-      - name: Build Dylib
-        run: |
-          export THEOS=/Users/runner/theos
-          export PATH=$THEOS/bin:$PATH
-          # Compila e ignora erros de assinatura
-          make FINALPACKAGE=1 codesign=0 || true
-          
-          # COMANDO DE RESGATE: Cria uma pasta chamada 'SAIDA' e caça a dylib
-          mkdir -p SAIDA
-          find . -name "*.dylib" -exec cp {} SAIDA/ \;
-          
-          # Lista os arquivos para termos certeza
-          ls -R SAIDA
-
-      - name: Upload Dylib
-        uses: actions/upload-artifact@v4
-        with:
-          name: MartinsMod-Dylib
-          # Pega tudo o que estiver na pasta SAIDA
-          path: SAIDA/
+    - name: Build Tweak
+      run: |
+        export THEOS=~/theos
+        make package FINALPACKAGE=1
+      
+    - name: Upload Artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: MartinsMod-Dylib
+        path: .theos/obj/main/MartinsMod.dylib
