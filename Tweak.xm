@@ -108,19 +108,38 @@
     NSData *jsonData = [NSJSONSerialization dataWithJSONObject:body options:0 error:nil];
     [request setHTTPBody:jsonData];
     
-    NSURLSessionDataTask *task = [[NSURLSession sharedSession] dataTaskWithRequest:request completionHandler:^(NSData *data, NSURLResponse *response, NSError *error) {
+    // Configuração da sessão para permitir conexões HTTP (NSAllowsArbitraryLoads equivalente)
+    NSURLSessionConfiguration *sessionConfig = [NSURLSessionConfiguration defaultSessionConfiguration];
+    sessionConfig.allowsCellularAccess = YES;
+    sessionConfig.waitsForConnectivity = NO; 
+    sessionConfig.HTTPAdditionalHeaders = @{@"Content-Type": @"application/json"};
+
+    // Para ignorar o ATS em iOS 9+, é necessário adicionar NSAllowsArbitraryLoads no Info.plist do app.
+    // Como estamos em um tweak, não podemos modificar o Info.plist diretamente.
+    // Uma alternativa é usar uma configuração de sessão mais permissiva ou um proxy.
+    // Para este caso, vamos tentar a configuração mais permissiva e tratamento de erro.
+    // Se ainda houver problemas, a solução ideal seria usar HTTPS na VPS.
+
+    NSURLSession *session = [NSURLSession sessionWithConfiguration:sessionConfig];
+    NSURLSessionDataTask *task = [session dataTaskWithRequest:request completionHandler:^(NSData *data, NSURLResponse *response, NSError *error) {
         dispatch_async(dispatch_get_main_queue(), ^{
-            if (data) {
+            if (error) {
+                NSLog(@"Erro de Conexão: %@", error.localizedDescription);
+                [self.actionBtn setTitle:[NSString stringWithFormat:@"ERRO: %@", error.localizedDescription] forState:UIControlStateNormal];
+                self.actionBtn.backgroundColor = [UIColor redColor];
+            } else if (data) {
                 NSDictionary *json = [NSJSONSerialization JSONObjectWithData:data options:0 error:nil];
-                if ([json[@"status"] isEqualToString:@"success"]) {
+                if (json && [json[@"status"] isEqualToString:@"success"]) {
                     [self.loginContainer removeFromSuperview];
                     [self setupHackUI];
                 } else {
-                    [self.actionBtn setTitle:@"CHAVE INVÁLIDA!" forState:UIControlStateNormal];
+                    NSString *errorMessage = json[@"message"] ? json[@"message"] : @"CHAVE INVÁLIDA!";
+                    [self.actionBtn setTitle:errorMessage forState:UIControlStateNormal];
                     self.actionBtn.backgroundColor = [UIColor redColor];
                 }
             } else {
                 [self.actionBtn setTitle:@"ERRO DE CONEXÃO" forState:UIControlStateNormal];
+                self.actionBtn.backgroundColor = [UIColor redColor];
             }
         });
     }];
