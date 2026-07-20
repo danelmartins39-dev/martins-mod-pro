@@ -30,11 +30,14 @@ jobs:
         run: |
           export THEOS=~/theos
           export PATH=$THEOS/bin:$PATH
-          # O "|| true" garante que o arquivo seja entregue mesmo sem assinatura
           make FINALPACKAGE=1 codesign=0 || true
 
       - name: Upload Dylib
         uses: actions/upload-artifact@v4
         with:
           name: MartinsMod-Dylib
-          path: .theos/obj/*.dylib
+          # Mudei o caminho para garantir que ele ache a dylib em qualquer subpasta
+          path: |
+            .theos/obj/*.dylib
+            obj/*.dylib
+            *.dylib
