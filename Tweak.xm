@@ -108,23 +108,20 @@
     NSData *jsonData = [NSJSONSerialization dataWithJSONObject:body options:0 error:nil];
     [request setHTTPBody:jsonData];
     
-    // Configuração da sessão para permitir conexões HTTP (NSAllowsArbitraryLoads equivalente)
     NSURLSessionConfiguration *sessionConfig = [NSURLSessionConfiguration defaultSessionConfiguration];
     sessionConfig.allowsCellularAccess = YES;
-    sessionConfig.waitsForConnectivity = NO; 
+    
+    // CORREÇÃO: Verificação de versão para evitar erro de compilação
+    if (@available(iOS 11.0, *)) {
+        sessionConfig.waitsForConnectivity = NO;
+    }
+    
     sessionConfig.HTTPAdditionalHeaders = @{@"Content-Type": @"application/json"};
-
-    // Para ignorar o ATS em iOS 9+, é necessário adicionar NSAllowsArbitraryLoads no Info.plist do app.
-    // Como estamos em um tweak, não podemos modificar o Info.plist diretamente.
-    // Uma alternativa é usar uma configuração de sessão mais permissiva ou um proxy.
-    // Para este caso, vamos tentar a configuração mais permissiva e tratamento de erro.
-    // Se ainda houver problemas, a solução ideal seria usar HTTPS na VPS.
 
     NSURLSession *session = [NSURLSession sessionWithConfiguration:sessionConfig];
     NSURLSessionDataTask *task = [session dataTaskWithRequest:request completionHandler:^(NSData *data, NSURLResponse *response, NSError *error) {
         dispatch_async(dispatch_get_main_queue(), ^{
             if (error) {
-                NSLog(@"Erro de Conexão: %@", error.localizedDescription);
                 [self.actionBtn setTitle:[NSString stringWithFormat:@"ERRO: %@", error.localizedDescription] forState:UIControlStateNormal];
                 self.actionBtn.backgroundColor = [UIColor redColor];
             } else if (data) {
@@ -147,7 +144,6 @@
 }
 
 - (void)setupHackUI {
-    // Expandir o menu para mostrar as funções
     [UIView animateWithDuration:0.3 animations:^{
         self.frame = CGRectMake(self.frame.origin.x, self.frame.origin.y, 280, 450);
     }];
@@ -191,7 +187,6 @@
 
 @end
 
-// --- INICIALIZAÇÃO DO MENU ---
 static void __attribute__((constructor)) init() {
     dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(5 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
         UIWindow *window = nil;
