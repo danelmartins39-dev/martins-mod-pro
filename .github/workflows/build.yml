@@ -10,7 +10,12 @@ jobs:
 
       - name: Setup Theos
         run: |
+          # Instala o ldid para evitar o erro de assinatura
+          brew install ldid
           git clone --recursive https://github.com/theos/theos.git ~/theos
+          echo "THEOS=/Users/runner/theos" >> $GITHUB_ENV
+          # Adiciona o Theos ao PATH para o sistema achar as ferramentas
+          echo "/Users/runner/theos/bin" >> $GITHUB_PATH
 
       - name: Setup SDK
         run: |
@@ -28,13 +33,16 @@ jobs:
 
       - name: Build Dylib
         run: |
-          export THEOS=~/theos
+          export THEOS=/Users/runner/theos
           export PATH=$THEOS/bin:$PATH
-          make FINALPACKAGE=1 codesign=0 || true
+          # Agora com ldid instalado, a compilação será 100% limpa
+          make FINALPACKAGE=1
           
-          # COMANDO DE CAÇA: Cria uma pasta 'entrega' e move qualquer dylib pra lá
+          # Cria a pasta de entrega e copia a dylib
           mkdir -p entrega
-          find . -name "*.dylib" -exec cp {} entrega/ \;
+          find .theos/obj -name "*.dylib" -exec cp {} entrega/ \;
+          # Caso não esteja na pasta oculta, procura na pasta normal
+          find obj -name "*.dylib" -exec cp {} entrega/ \; || true
 
       - name: Upload Dylib
         uses: actions/upload-artifact@v4
