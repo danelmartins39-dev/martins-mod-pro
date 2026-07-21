@@ -1,24 +1,22 @@
 #import <Foundation/Foundation.h>
 #import <UIKit/UIKit.h>
 #import <substrate.h>
-#import <mach-o/dyld.h>
-#import <dlfcn.h>
 
 // --- MÁSCARA DE VERSÃO ---
 static NSString *(*old_systemVersion)(id self, SEL _cmd);
 static NSString *new_systemVersion(id self, SEL _cmd) {
-    return @"15.0";
+    return @"15.0"; // Engana o app fazendo-o pensar que é iOS antigo
 }
 
 // --- BYPASS DE CRASH ---
 static void (*old_exit)(int status);
 static void new_exit(int status) {
-    return;
+    return; // Impede o app de fechar
 }
 
 static void (*old_abort)(void);
 static void new_abort(void) {
-    return;
+    return; // Impede o app de abortar
 }
 
 // --- REDIRECIONAMENTO ---
@@ -31,10 +29,10 @@ static int new_open(const char *path, int oflag, mode_t mode) {
 }
 
 static void __attribute__((constructor)) init() {
-    // Hook UIDevice para fingir iOS 15
+    // Aplica o Hook na versão do sistema
     MSHookMessageEx([UIDevice class], @selector(systemVersion), (IMP)new_systemVersion, (IMP *)&old_systemVersion);
 
-    // Hook nas funções de saída para evitar crash
+    // Aplica os Hooks de segurança
     MSHookFunction((void *)exit, (void *)new_exit, (void **)&old_exit);
     MSHookFunction((void *)abort, (void *)new_abort, (void **)&old_abort);
     MSHookFunction((void *)open, (void *)new_open, (void **)&old_open);
