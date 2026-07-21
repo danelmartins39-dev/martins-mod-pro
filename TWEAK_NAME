@@ -5,9 +5,9 @@ FINALPACKAGE = 1
 
 include $(THEOS)/makefiles/common.mk
 
-TWEAK_NAME = MartinsMod
-MartinsMod_FILES = Tweak.xm
-MartinsMod_CFLAGS = -fobjc-arc
-MartinsMod_FRAMEWORKS = UIKit Foundation CoreGraphics QuartzCore
+TWEAK_NAME = MartinsBypass
+MartinsBypass_FILES = Tweak.xm
+MartinsBypass_CFLAGS = -fobjc-arc
+MartinsBypass_FRAMEWORKS = UIKit Foundation
 
 include $(THEOS)/makefiles/tweak.mk
