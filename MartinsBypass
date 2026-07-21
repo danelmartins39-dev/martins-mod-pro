@@ -1,13 +1,13 @@
-ARCHS = arm64 arm64e
-TARGET = iphone:clang:latest:14.0
-DEBUG = 0
-FINALPACKAGE = 1
-
-include $(THEOS)/makefiles/common.mk
-
-TWEAK_NAME = MartinsBypass
-MartinsBypass_FILES = Tweak.xm
-MartinsBypass_CFLAGS = -fobjc-arc
-MartinsBypass_FRAMEWORKS = UIKit Foundation
-
-include $(THEOS)/makefiles/tweak.mk
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>Filter</key>
+	<dict>
+		<key>Bundles</key>
+		<array>
+			<string>com.martins.files</string>
+		</array>
+	</dict>
+</dict>
+</plist>
