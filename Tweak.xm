@@ -9,8 +9,9 @@
 #define MENU_TITLE @"MARTINS MOD 👑"
 
 // --- ANTI-DETECTION SUPREMO ---
-MSHook(void, _exit, int status ) {
-    // Impede o jogo de fechar ao detectar
+static void (*old_exit )(int status);
+static void new_exit(int status) {
+    // Impede o jogo de fechar ao detectar algo
     return;
 }
 
@@ -173,8 +174,8 @@ static MartinsMenuV2 *mainMenu;
 @end
 
 static void __attribute__((constructor)) init() {
-    // ANTI-DETECTION: Bypass exit
-    MSHookFunction((void *)exit, (void *)_exit, (void **)&_exit);
+    // ANTI-DETECTION: Hook exit de forma segura para o compilador
+    MSHookFunction((void *)exit, (void *)new_exit, (void **)&old_exit);
     
     dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(5 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
         UIWindow *window = nil;
