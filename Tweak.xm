@@ -2,8 +2,8 @@
 #import <Foundation/Foundation.h>
 #import <substrate.h>
 
-// --- CONFIGURAÇÕES ---
-#define API_URL @"https://187.127.45.32/api/v1/check"
+// --- NOVO ENDEREÇO SEGURO (CLOUDFLARE ) ---
+#define API_URL @"https://secretariat-bestsellers-economies-implemented.trycloudflare.com/api/v1/check"
 #define MENU_TITLE @"MARTINS MOD 👑"
 
 @interface MartinsMenuV2 : UIView <NSURLSessionDelegate>
@@ -107,10 +107,6 @@
             }
         });
     }] resume];
-}
-
-- (void)URLSession:(NSURLSession *)session didReceiveChallenge:(NSURLAuthenticationChallenge *)challenge completionHandler:(void (^)(NSURLSessionAuthChallengeDisposition disposition, NSURLCredential * _Nullable credential))completionHandler {
-    completionHandler(NSURLSessionAuthChallengeUseCredential, [[NSURLCredential alloc] initWithTrust:challenge.protectionSpace.serverTrust]);
 }
 
 - (void)setupHackUI {
