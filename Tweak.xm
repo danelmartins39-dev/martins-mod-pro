@@ -1,21 +1,18 @@
 #import <UIKit/UIKit.h>
 #import <Foundation/Foundation.h>
 #import <substrate.h>
-#import <mach-o/dyld.h>
-#import <sys/mman.h>
 
-// --- CONFIGURAÇÕES DO SERVIDOR SEGURO ---
+// --- CONFIGURAÇÕES ---
 #define API_URL @"https://187.127.45.32/api/v1/check"
 #define MENU_TITLE @"MARTINS MOD 👑"
 
-@interface MartinsMenuV2 : UIView <UITextFieldDelegate, NSURLSessionDelegate>
+@interface MartinsMenuV2 : UIView <NSURLSessionDelegate>
 @property (nonatomic, strong ) UIView *header;
 @property (nonatomic, strong) UILabel *titleLabel;
 @property (nonatomic, strong) UIScrollView *contentView;
-@property (nonatomic, strong) UITextField *keyField;
-@property (nonatomic, strong) UIButton *actionBtn;
 @property (nonatomic, strong) UIView *loginContainer;
-@property (nonatomic, strong) UIView *hackContainer;
+@property (nonatomic, strong) UILabel *statusLabel;
+@property (nonatomic, strong) NSString *expiryDate;
 @end
 
 @implementation MartinsMenuV2
@@ -27,18 +24,18 @@
         self.layer.masksToBounds = YES;
         self.layer.borderWidth = 2.0;
         self.layer.borderColor = [UIColor colorWithRed:1.0 green:0.84 blue:0.0 alpha:1.0].CGColor;
-        self.backgroundColor = [[UIColor blackColor] colorWithAlphaComponent:0.92];
-        
-        self.layer.shadowColor = [UIColor redColor].CGColor;
-        self.layer.shadowOffset = CGSizeMake(0, 0);
-        self.layer.shadowOpacity = 0.8;
-        self.layer.shadowRadius = 10;
+        self.backgroundColor = [[UIColor blackColor] colorWithAlphaComponent:0.95];
         
         [self setupHeader];
         [self setupLoginUI];
         
         UIPanGestureRecognizer *panGesture = [[UIPanGestureRecognizer alloc] initWithTarget:self action:@selector(handlePan:)];
         [self addGestureRecognizer:panGesture];
+        
+        // Tentar login automático após 1 segundo
+        dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(1 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
+            [self checkClipboardAndLogin];
+        });
     }
     return self;
 }
@@ -60,91 +57,92 @@
     self.loginContainer = [[UIView alloc] initWithFrame:CGRectMake(0, 45, self.frame.size.width, self.frame.size.height - 45)];
     [self addSubview:self.loginContainer];
     
-    self.keyField = [[UITextField alloc] initWithFrame:CGRectMake(20, 40, self.loginContainer.frame.size.width - 40, 45)];
-    self.keyField.placeholder = @"INSIRA SUA CHAVE VIP";
-    self.keyField.backgroundColor = [[UIColor whiteColor] colorWithAlphaComponent:0.1];
-    self.keyField.textColor = [UIColor whiteColor];
-    self.keyField.textAlignment = NSTextAlignmentCenter;
-    self.keyField.layer.cornerRadius = 10;
-    self.keyField.layer.borderWidth = 1;
-    self.keyField.layer.borderColor = [[UIColor whiteColor] colorWithAlphaComponent:0.3].CGColor;
-    [self.loginContainer addSubview:self.keyField];
-    
-    self.actionBtn = [[UIButton alloc] initWithFrame:CGRectMake(20, 105, self.loginContainer.frame.size.width - 40, 45)];
-    [self.actionBtn setTitle:@"ATIVAR ACESSO" forState:UIControlStateNormal];
-    [self.actionBtn setTitleColor:[UIColor blackColor] forState:UIControlStateNormal];
-    self.actionBtn.backgroundColor = [UIColor colorWithRed:1.0 green:0.84 blue:0.0 alpha:1.0];
-    self.actionBtn.layer.cornerRadius = 10;
-    [self.actionBtn addTarget:self action:@selector(validateKey) forControlEvents:UIControlEventTouchUpInside];
-    [self.loginContainer addSubview:self.actionBtn];
+    self.statusLabel = [[UILabel alloc] initWithFrame:CGRectMake(10, 40, self.frame.size.width - 20, 60)];
+    self.statusLabel.text = @"COPIE SUA KEY E ABRA O JOGO\nPARA LOGIN AUTOMÁTICO";
+    self.statusLabel.textColor = [UIColor whiteColor];
+    self.statusLabel.numberOfLines = 0;
+    self.statusLabel.textAlignment = NSTextAlignmentCenter;
+    self.statusLabel.font = [UIFont systemFontOfSize:14 weight:UIFontWeightMedium];
+    [self.loginContainer addSubview:self.statusLabel];
 }
 
-- (void)handlePan:(UIPanGestureRecognizer *)gesture {
-    CGPoint translation = [gesture translationInView:self.superview];
-    self.center = CGPointMake(self.center.x + translation.x, self.center.y + translation.y);
-    [gesture setTranslation:CGPointZero inView:self.superview];
+- (void)checkClipboardAndLogin {
+    UIPasteboard *pb = [UIPasteboard generalPasteboard];
+    NSString *key = pb.string;
+    
+    if (key && key.length > 5) {
+        self.statusLabel.text = [NSString stringWithFormat:@"KEY DETECTADA:\n%@", key];
+        [self validateKey:key];
+    } else {
+        self.statusLabel.text = @"NENHUMA KEY NO CLIPBOARD\nPOR FAVOR, COPIE SUA KEY";
+    }
 }
 
-- (void)validateKey {
-    NSString *key = self.keyField.text;
-    if ([key length] == 0) return;
-    
-    [self.actionBtn setTitle:@"VERIFICANDO..." forState:UIControlStateNormal];
+- (void)validateKey:(NSString *)key {
+    self.statusLabel.text = @"VERIFICANDO ACESSO...";
     
     NSURL *url = [NSURL URLWithString:API_URL];
-    NSMutableURLRequest *request = [NSMutableURLRequest requestWithURL:url];
+    NSMutableURLRequest *request = [NSMutableURLRequest request_URLWithURL:url];
     [request setHTTPMethod:@"POST"];
     [request setValue:@"application/json" forHTTPHeaderField:@"Content-Type"];
-    
-    NSDictionary *body = @{@"key": key};
-    NSData *jsonData = [NSJSONSerialization dataWithJSONObject:body options:0 error:nil];
-    [request setHTTPBody:jsonData];
+    [request setHTTPBody:[NSJSONSerialization dataWithJSONObject:@{@"key": key} options:0 error:nil]];
     
     NSURLSessionConfiguration *config = [NSURLSessionConfiguration defaultSessionConfiguration];
+    config.timeoutIntervalForRequest = 15;
     NSURLSession *session = [NSURLSession sessionWithConfiguration:config delegate:self delegateQueue:[NSOperationQueue mainQueue]];
     
-    NSURLSessionDataTask *task = [session dataTaskWithRequest:request completionHandler:^(NSData *data, NSURLResponse *response, NSError *error) {
+    [[session dataTaskWithRequest:request completionHandler:^(NSData *data, NSURLResponse *response, NSError *error) {
         dispatch_async(dispatch_get_main_queue(), ^{
             if (error) {
-                [self.actionBtn setTitle:@"ERRO DE CONEXÃO" forState:UIControlStateNormal];
+                self.statusLabel.text = @"ERRO DE CONEXÃO\nVERIFIQUE SUA INTERNET";
             } else if (data) {
                 NSDictionary *json = [NSJSONSerialization JSONObjectWithData:data options:0 error:nil];
                 if (json && [json[@"status"] isEqualToString:@"success"]) {
+                    self.expiryDate = json[@"expiry"];
                     [self.loginContainer removeFromSuperview];
                     [self setupHackUI];
                 } else {
-                    [self.actionBtn setTitle:@"CHAVE INVÁLIDA" forState:UIControlStateNormal];
+                    self.statusLabel.text = @"KEY INVÁLIDA OU EXPIRADA";
                 }
             }
         });
-    }];
-    [task resume];
+    }] resume];
 }
 
-// IGNORAR ERRO DE CERTIFICADO (PARA CERTIFICADO AUTO-ASSINADO)
 - (void)URLSession:(NSURLSession *)session didReceiveChallenge:(NSURLAuthenticationChallenge *)challenge completionHandler:(void (^)(NSURLSessionAuthChallengeDisposition disposition, NSURLCredential * _Nullable credential))completionHandler {
-    if ([challenge.protectionSpace.authenticationMethod isEqualToString:NSURLAuthenticationMethodServerTrust]) {
-        completionHandler(NSURLSessionAuthChallengeUseCredential, [[NSURLCredential alloc] initWithTrust:challenge.protectionSpace.serverTrust]);
-    } else {
-        completionHandler(NSURLSessionAuthChallengePerformDefaultHandling, nil);
-    }
+    completionHandler(NSURLSessionAuthChallengeUseCredential, [[NSURLCredential alloc] initWithTrust:challenge.protectionSpace.serverTrust]);
 }
 
 - (void)setupHackUI {
     [UIView animateWithDuration:0.3 animations:^{
-        self.frame = CGRectMake(self.frame.origin.x, self.frame.origin.y, 280, 450);
+        self.frame = CGRectMake(self.frame.origin.x, self.frame.origin.y, 280, 480);
     }];
-    self.hackContainer = [[UIView alloc] initWithFrame:CGRectMake(0, 45, self.frame.size.width, self.frame.size.height - 45)];
-    [self addSubview:self.hackContainer];
     
-    self.contentView = [[UIScrollView alloc] initWithFrame:self.hackContainer.bounds];
-    self.contentView.contentSize = CGSizeMake(self.hackContainer.frame.size.width, 600);
-    [self.hackContainer addSubview:self.contentView];
+    UIView *hackView = [[UIView alloc] initWithFrame:CGRectMake(0, 45, self.frame.size.width, self.frame.size.height - 45)];
+    [self addSubview:hackView];
     
-    [self addOption:@"ESP ANTENNA" y:20];
-    [self addOption:@"AIMBOT 360" y:80];
-    [self addOption:@"AUTO HEADSHOT" y:140];
-    [self addOption:@"SPEED HACK" y:200];
+    UILabel *expiryLbl = [[UILabel alloc] initWithFrame:CGRectMake(0, 5, self.frame.size.width, 20)];
+    expiryLbl.text = [NSString stringWithFormat:@"VALIDADE: %@", [self formatExpiryDate:self.expiryDate]];
+    expiryLbl.textColor = [UIColor colorWithRed:1.0 green:0.84 blue:0.0 alpha:1.0];
+    expiryLbl.font = [UIFont boldSystemFontOfSize:10];
+    expiryLbl.textAlignment = NSTextAlignmentCenter;
+    [hackView addSubview:expiryLbl];
+    
+    self.contentView = [[UIScrollView alloc] initWithFrame:CGRectMake(0, 30, self.frame.size.width, hackView.frame.size.height - 30)];
+    self.contentView.contentSize = CGSizeMake(self.frame.size.width, 500);
+    [hackView addSubview:self.contentView];
+    
+    [self addOption:@"ESP ANTENNA" y:10];
+    [self addOption:@"AIMBOT 360" y:70];
+    [self addOption:@"AUTO HEADSHOT" y:130];
+    [self addOption:@"SPEED HACK" y:190];
+    [self addOption:@"NO RECOIL" y:250];
+}
+
+- (NSString *)formatExpiryDate:(NSString *)isoDate {
+    if (!isoDate) return @"PERMANENTE";
+    if (isoDate.length > 10) return [isoDate substringToIndex:10];
+    return isoDate;
 }
 
 - (void)addOption:(NSString *)name y:(int)y {
@@ -156,11 +154,18 @@
     UILabel *lbl = [[UILabel alloc] initWithFrame:CGRectMake(15, 0, 160, 50)];
     lbl.text = name;
     lbl.textColor = [UIColor whiteColor];
+    lbl.font = [UIFont systemFontOfSize:14 weight:UIFontWeightBold];
     [row addSubview:lbl];
     
     UISwitch *sw = [[UISwitch alloc] initWithFrame:CGRectMake(row.frame.size.width - 60, 10, 0, 0)];
     sw.onTintColor = [UIColor redColor];
     [row addSubview:sw];
+}
+
+- (void)handlePan:(UIPanGestureRecognizer *)gesture {
+    CGPoint translation = [gesture translationInView:self.superview];
+    self.center = CGPointMake(self.center.x + translation.x, self.center.y + translation.y);
+    [gesture setTranslation:CGPointZero inView:self.superview];
 }
 
 @end
