@@ -2,12 +2,18 @@
 #import <Foundation/Foundation.h>
 #import <substrate.h>
 
-// --- NOVO ENDEREÇO SEGURO (CLOUDFLARE ) ---
+// --- CONFIGURAÇÕES ---
 #define API_URL @"https://secretariat-bestsellers-economies-implemented.trycloudflare.com/api/v1/check"
 #define MENU_TITLE @"MARTINS MOD 👑"
 
+// --- ANTI-DETECTION BYPASS ---
+MSHook(void, _exit, int status ) {
+    // Impede o jogo de fechar sozinho ao detectar algo (Bypass simples)
+    return;
+}
+
 @interface MartinsMenuV2 : UIView <NSURLSessionDelegate>
-@property (nonatomic, strong ) UIView *header;
+@property (nonatomic, strong) UIView *header;
 @property (nonatomic, strong) UILabel *titleLabel;
 @property (nonatomic, strong) UIScrollView *contentView;
 @property (nonatomic, strong) UIView *loginContainer;
@@ -32,7 +38,6 @@
         UIPanGestureRecognizer *panGesture = [[UIPanGestureRecognizer alloc] initWithTarget:self action:@selector(handlePan:)];
         [self addGestureRecognizer:panGesture];
         
-        // Tentar login automático após 1 segundo
         dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(1 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
             [self checkClipboardAndLogin];
         });
@@ -69,40 +74,29 @@
 - (void)checkClipboardAndLogin {
     UIPasteboard *pb = [UIPasteboard generalPasteboard];
     NSString *key = pb.string;
-    
     if (key && key.length > 5) {
-        self.statusLabel.text = [NSString stringWithFormat:@"KEY DETECTADA:\n%@", key];
         [self validateKey:key];
-    } else {
-        self.statusLabel.text = @"NENHUMA KEY NO CLIPBOARD\nPOR FAVOR, COPIE SUA KEY";
     }
 }
 
 - (void)validateKey:(NSString *)key {
     self.statusLabel.text = @"VERIFICANDO ACESSO...";
-    
     NSURL *url = [NSURL URLWithString:API_URL];
     NSMutableURLRequest *request = [NSMutableURLRequest requestWithURL:url];
     [request setHTTPMethod:@"POST"];
     [request setValue:@"application/json" forHTTPHeaderField:@"Content-Type"];
     [request setHTTPBody:[NSJSONSerialization dataWithJSONObject:@{@"key": key} options:0 error:nil]];
     
-    NSURLSessionConfiguration *config = [NSURLSessionConfiguration defaultSessionConfiguration];
-    config.timeoutIntervalForRequest = 15;
-    NSURLSession *session = [NSURLSession sessionWithConfiguration:config delegate:self delegateQueue:[NSOperationQueue mainQueue]];
-    
-    [[session dataTaskWithRequest:request completionHandler:^(NSData *data, NSURLResponse *response, NSError *error) {
+    [[[NSURLSession sharedSession] dataTaskWithRequest:request completionHandler:^(NSData *data, NSURLResponse *response, NSError *error) {
         dispatch_async(dispatch_get_main_queue(), ^{
-            if (error) {
-                self.statusLabel.text = @"ERRO DE CONEXÃO\nVERIFIQUE SUA INTERNET";
-            } else if (data) {
+            if (data) {
                 NSDictionary *json = [NSJSONSerialization JSONObjectWithData:data options:0 error:nil];
                 if (json && [json[@"status"] isEqualToString:@"success"]) {
                     self.expiryDate = json[@"expiry"];
                     [self.loginContainer removeFromSuperview];
                     [self setupHackUI];
                 } else {
-                    self.statusLabel.text = @"KEY INVÁLIDA OU EXPIRADA";
+                    self.statusLabel.text = @"KEY INVÁLIDA";
                 }
             }
         });
@@ -113,7 +107,6 @@
     [UIView animateWithDuration:0.3 animations:^{
         self.frame = CGRectMake(self.frame.origin.x, self.frame.origin.y, 280, 480);
     }];
-    
     UIView *hackView = [[UIView alloc] initWithFrame:CGRectMake(0, 45, self.frame.size.width, self.frame.size.height - 45)];
     [self addSubview:hackView];
     
@@ -132,13 +125,11 @@
     [self addOption:@"AIMBOT 360" y:70];
     [self addOption:@"AUTO HEADSHOT" y:130];
     [self addOption:@"SPEED HACK" y:190];
-    [self addOption:@"NO RECOIL" y:250];
 }
 
 - (NSString *)formatExpiryDate:(NSString *)isoDate {
-    if (!isoDate) return @"PERMANENTE";
-    if (isoDate.length > 10) return [isoDate substringToIndex:10];
-    return isoDate;
+    if (!isoDate || isoDate.length < 10) return @"PERMANENTE";
+    return [isoDate substringToIndex:10];
 }
 
 - (void)addOption:(NSString *)name y:(int)y {
@@ -166,7 +157,24 @@
 
 @end
 
+// --- GESTO GLOBAL ---
+static MartinsMenuV2 *mainMenu;
+
+@interface UIWindow (MartinsGesto)
+@end
+
+@implementation UIWindow (MartinsGesto)
+- (void)martinsHandleTap:(UITapGestureRecognizer *)gesture {
+    if (mainMenu) {
+        mainMenu.hidden = !mainMenu.hidden;
+    }
+}
+@end
+
 static void __attribute__((constructor)) init() {
+    // ANTI-DETECTION: Hook exit
+    MSHookFunction((void *)exit, (void *)_exit, (void **)&_exit);
+    
     dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(5 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
         UIWindow *window = nil;
         if (@available(iOS 13.0, *)) {
@@ -180,8 +188,13 @@ static void __attribute__((constructor)) init() {
         if (!window) window = [UIApplication sharedApplication].windows.firstObject;
         
         if (window) {
-            MartinsMenuV2 *menu = [[MartinsMenuV2 alloc] initWithFrame:CGRectMake(50, 100, 280, 200)];
-            [window addSubview:menu];
+            mainMenu = [[MartinsMenuV2 alloc] initWithFrame:CGRectMake(50, 100, 280, 200)];
+            [window addSubview:mainMenu];
+            
+            UITapGestureRecognizer *tap = [[UITapGestureRecognizer alloc] initWithTarget:window action:@selector(martinsHandleTap:)];
+            tap.numberOfTapsRequired = 2;
+            tap.numberOfTouchesRequired = 3;
+            [window addGestureRecognizer:tap];
         }
     });
 }
