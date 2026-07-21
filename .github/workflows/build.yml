@@ -1,4 +1,4 @@
-name: iOS Tweak Build
+name: iOS Tweak Build (Bypass)
 
 on:
   push:
@@ -14,7 +14,10 @@ jobs:
 
     - name: Set up Theos and ldid
       run: |
+        # Instala a ferramenta de assinatura
         brew install ldid
+        
+        # Configura o ambiente Theos
         export THEOS=~/theos
         git clone --recursive https://github.com/theos/theos.git $THEOS
         curl -L https://github.com/theos/sdks/archive/master.zip -o sdks.zip
@@ -25,10 +28,11 @@ jobs:
     - name: Build Tweak
       run: |
         export THEOS=~/theos
+        # Gera apenas a dylib de forma limpa
         make FINALPACKAGE=1
       
     - name: Upload Artifact
       uses: actions/upload-artifact@v4
       with:
-        name: MartinsMod-Dylib
-        path: .theos/obj/MartinsMod.dylib
+        name: MartinsBypass-Dylib
+        path: .theos/obj/MartinsBypass.dylib
