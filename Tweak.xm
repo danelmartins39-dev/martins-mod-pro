@@ -82,7 +82,7 @@
     self.statusLabel.text = @"VERIFICANDO ACESSO...";
     
     NSURL *url = [NSURL URLWithString:API_URL];
-    NSMutableURLRequest *request = [NSMutableURLRequest request_URLWithURL:url];
+    NSMutableURLRequest *request = [NSMutableURLRequest requestWithURL:url];
     [request setHTTPMethod:@"POST"];
     [request setValue:@"application/json" forHTTPHeaderField:@"Content-Type"];
     [request setHTTPBody:[NSJSONSerialization dataWithJSONObject:@{@"key": key} options:0 error:nil]];
