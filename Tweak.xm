@@ -1,14 +1,16 @@
 #import <UIKit/UIKit.h>
 #import <Foundation/Foundation.h>
 #import <substrate.h>
+#import <mach-o/dyld.h>
+#import <dlfcn.h>
 
 // --- CONFIGURAÇÕES ---
 #define API_URL @"https://secretariat-bestsellers-economies-implemented.trycloudflare.com/api/v1/check"
 #define MENU_TITLE @"MARTINS MOD 👑"
 
-// --- ANTI-DETECTION BYPASS ---
+// --- ANTI-DETECTION SUPREMO ---
 MSHook(void, _exit, int status ) {
-    // Impede o jogo de fechar sozinho ao detectar algo (Bypass simples)
+    // Impede o jogo de fechar ao detectar
     return;
 }
 
@@ -157,7 +159,6 @@ MSHook(void, _exit, int status ) {
 
 @end
 
-// --- GESTO GLOBAL ---
 static MartinsMenuV2 *mainMenu;
 
 @interface UIWindow (MartinsGesto)
@@ -172,7 +173,7 @@ static MartinsMenuV2 *mainMenu;
 @end
 
 static void __attribute__((constructor)) init() {
-    // ANTI-DETECTION: Hook exit
+    // ANTI-DETECTION: Bypass exit
     MSHookFunction((void *)exit, (void *)_exit, (void **)&_exit);
     
     dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(5 * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
