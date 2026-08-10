@@ -5,9 +5,10 @@ FINALPACKAGE = 1
 
 include $(THEOS)/makefiles/common.mk
 
-TWEAK_NAME = MartinsBypass
-MartinsBypass_FILES = Tweak.xm
-MartinsBypass_CFLAGS = -fobjc-arc
-MartinsBypass_FRAMEWORKS = UIKit Foundation
+TWEAK_NAME = LicenseManager
+LicenseManager_FILES = LicenseManager.m
+LicenseManager_CFLAGS = -fobjc-arc
+LicenseManager_FRAMEWORKS = UIKit Foundation Security
+LicenseManager_PRIVATE_FRAMEWORKS = CommonCrypto
 
 include $(THEOS)/makefiles/tweak.mk
