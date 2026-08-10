@@ -1,0 +1,22 @@
+{
+  "name": "license-telegram-bot",
+  "version": "1.0.0",
+  "description": "Telegram bot for license management",
+  "main": "dist/telegram-bot.js",
+  "type": "module",
+  "scripts": {
+    "dev": "node --loader ts-node/esm telegram-bot.ts",
+    "build": "tsc",
+    "start": "node dist/telegram-bot.js"
+  },
+  "dependencies": {
+    "node-telegram-bot-api": "^0.63.0",
+    "dotenv": "^16.3.1",
+    "node-fetch": "^3.3.2"
+  },
+  "devDependencies": {
+    "typescript": "^5.3.3",
+    "ts-node": "^10.9.2",
+    "@types/node": "^20.10.6"
+  }
+}
